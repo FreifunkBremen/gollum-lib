@@ -25,18 +25,23 @@ context "Wiki" do
     committer      = Gollum::Committer.new(@wiki, commit)
     assert_equal name, committer.actor.name
     assert_equal email, committer.actor.email
+    assert_equal nil, committer.actor.time
 
     commit[:name]  = 'bob'
     commit[:email] = nil
+    commit[:time] = nil
     committer      = Gollum::Committer.new(@wiki, commit)
     assert_equal 'bob', committer.actor.name
     assert_equal email, committer.actor.email
+    assert_equal nil, committer.actor.time
 
     commit[:name]  = nil
     commit[:email] = 'foo@bar.com'
+    commit[:time] = Time.parse('2020-02-14')
     committer      = Gollum::Committer.new(@wiki, commit)
     assert_equal name, committer.actor.name
     assert_equal 'foo@bar.com', committer.actor.email
+    assert_equal Time.parse('2020-02-14'), committer.actor.time
   end
 
   test "yield after_commit callback" do
@@ -87,7 +92,7 @@ context "Wiki" do
   end
 
   test "parents with default master ref" do
-    ref       = 'a3e857e03ecc69a99f1dd72dc3f7e0c47602a05a'
+    ref       = '324396c422678622ca16524424161429ee673bb9'
     committer = Gollum::Committer.new(@wiki)
     assert_equal ref, committer.parents.first.sha
   end
@@ -112,7 +117,7 @@ context "Wiki" do
     Gollum::Git::Index.any_instance.stubs(:commit).returns(true)
 
     @wiki.repo.git.expects(:checkout).with("#{page_file_dir}#{dir}/#{name}.md", "HEAD")
-    @wiki.write_page(name, format, "foo bar baz", commit_details, dir)
+    @wiki.write_page(File.join(dir, name), format, "foo bar baz", commit_details)
   end
 
   test "update working directory with page file directory and subdirectory for an existing page" do
@@ -125,6 +130,7 @@ context "Wiki" do
     Gollum::Git::Index.any_instance.stubs(:commit).returns(true)
 
     page = @wiki.page(name)
+
     @wiki.repo.git.expects(:checkout).at_least(1).with("#{page_file_dir}/#{name}.md", "HEAD")
     @wiki.update_page(page, page.name, format, "# Elrond", commit_details())
   end
